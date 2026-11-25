@@ -125,6 +125,26 @@ export class App implements OnInit {
 
 
   // =====================================================
+  // TIPO DE ACCESO
+  // =====================================================
+
+  tipoAcceso =
+    signal<'PERSONA' | 'NEGOCIO'>(
+      'PERSONA'
+    );
+
+
+  seleccionarTipoAcceso(
+    tipo: 'PERSONA' | 'NEGOCIO'
+  ): void {
+
+    this.tipoAcceso.set(tipo);
+
+    this.mensajeAuth.set('');
+  }
+
+
+  // =====================================================
   // INICIO
   // =====================================================
 
@@ -367,7 +387,7 @@ export class App implements OnInit {
     switch (estado) {
 
       case 'VERIFICADO':
-        return 'Negocio verificado';
+        return 'Organización verificada';
 
       case 'PENDIENTE':
         return 'Verificación pendiente';
@@ -376,7 +396,7 @@ export class App implements OnInit {
         return 'Solicitud rechazada';
 
       case 'SUSPENDIDO':
-        return 'Negocio suspendido';
+        return 'Organización suspendida';
 
       default:
         return 'Sin estado';
@@ -515,6 +535,40 @@ export class App implements OnInit {
 
         next: (respuesta) => {
 
+          const tipoReal =
+            respuesta.usuario
+              .tipo_usuario;
+
+
+          if (
+            tipoReal !== 'ADMIN'
+            &&
+            tipoReal !== this.tipoAcceso()
+          ) {
+
+            this.cargandoAuth.set(false);
+
+            if (tipoReal === 'PERSONA') {
+
+              this.mensajeAuth.set(
+                'Esta cuenta corresponde a un usuario. '
+                +
+                'Selecciona "Usuario" para ingresar.'
+              );
+
+            } else {
+
+              this.mensajeAuth.set(
+                'Esta cuenta corresponde a una organización. '
+                +
+                'Selecciona "Organización" para ingresar.'
+              );
+            }
+
+            return;
+          }
+
+
           this.guardarSesion(
             respuesta
           );
@@ -633,7 +687,7 @@ export class App implements OnInit {
     ) {
 
       this.mensajeAuth.set(
-        'Ingresa el nombre del negocio.'
+        'Ingresa el nombre de la organización.'
       );
 
       return;
@@ -691,7 +745,7 @@ export class App implements OnInit {
           ) {
 
             this.mensajeNegocio.set(
-              'Tu negocio fue registrado. '
+              'Tu organización fue registrada. '
               +
               'La verificación está pendiente.'
             );
@@ -813,7 +867,7 @@ export class App implements OnInit {
       this.mensajeAuth.set(
         'Debes iniciar sesión '
         +
-        'con una cuenta de negocio.'
+        'con una cuenta de organización.'
       );
 
       this.mostrarLogin();
@@ -848,7 +902,7 @@ export class App implements OnInit {
       this.mensajeNegocio.set(
         'Debes iniciar sesión '
         +
-        'como negocio.'
+        'como organización.'
       );
 
       return;
@@ -858,7 +912,7 @@ export class App implements OnInit {
     if (!this.negocioPuedePublicar()) {
 
       this.mensajeNegocio.set(
-        'Tu negocio todavía '
+        'Tu organización todavía '
         +
         'no está verificado.'
       );

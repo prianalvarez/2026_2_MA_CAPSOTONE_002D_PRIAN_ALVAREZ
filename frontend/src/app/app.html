@@ -61,7 +61,7 @@
         "
         (click)="mostrarNegocios()"
       >
-        Mi negocio
+        Mi organización
       </a>
 
     }
@@ -438,18 +438,78 @@
 
     <section class="auth-card">
 
-      <span class="tag">
-        Bienvenido de vuelta
-      </span>
+      <div class="login-role-selector">
 
-      <h1>
-        Iniciar sesión
-      </h1>
+        <button
+          type="button"
+          class="login-role-option"
+          [class.active]="tipoAcceso() === 'PERSONA'"
+          (click)="seleccionarTipoAcceso('PERSONA')"
+        >
+          <span>👤</span>
 
-      <p class="auth-description">
-        Accede a tu cuenta para disfrutar
-        las funciones personalizadas de Planify.
-      </p>
+          <div>
+            <strong>Usuario</strong>
+
+            <small>
+              Descubre lugares, eventos y panoramas
+            </small>
+          </div>
+        </button>
+
+
+        <button
+          type="button"
+          class="login-role-option"
+          [class.active]="tipoAcceso() === 'NEGOCIO'"
+          (click)="seleccionarTipoAcceso('NEGOCIO')"
+        >
+          <span>🏛️</span>
+
+          <div>
+            <strong>Organización</strong>
+
+            <small>
+              Publica y administra actividades
+            </small>
+          </div>
+        </button>
+
+      </div>
+
+
+      @if (tipoAcceso() === 'PERSONA') {
+
+        <span class="tag">
+          Acceso para usuarios
+        </span>
+
+        <h1>
+          Iniciar sesión
+        </h1>
+
+        <p class="auth-description">
+          Accede a Planify para descubrir lugares,
+          eventos y experiencias.
+        </p>
+
+      } @else {
+
+        <span class="tag">
+          Planify para organizaciones
+        </span>
+
+        <h1>
+          Acceso de organización
+        </h1>
+
+        <p class="auth-description">
+          Ingresa para administrar tu presencia,
+          actividades y eventos en Planify.
+        </p>
+
+      }
+
 
       <label>
         Correo electrónico
@@ -526,7 +586,7 @@
       </h1>
 
       <p class="auth-description">
-        Regístrate como persona o como negocio.
+        Regístrate como usuario o como organización.
       </p>
 
       <label>
@@ -585,18 +645,18 @@
           </option>
 
           <option value="NEGOCIO">
-            Negocio
+            Organización
           </option>
         </select>
       </label>
 
       <label>
-        Nombre del negocio
+        Nombre de la organización
 
         <input
           #registroNegocio
           type="text"
-          placeholder="Solo para cuentas de negocio"
+          placeholder="Solo para cuentas de organización"
         />
       </label>
 
@@ -731,7 +791,13 @@
             </span>
 
             <strong>
-              {{ usuario.tipo_usuario }}
+              @if (usuario.tipo_usuario === 'NEGOCIO') {
+                Organización
+              } @else if (usuario.tipo_usuario === 'ADMIN') {
+                Administrador
+              } @else {
+                Usuario
+              }
             </strong>
           </div>
 
@@ -739,7 +805,7 @@
 
             <div>
               <span>
-                Negocio
+                Organización
               </span>
 
               <strong>
@@ -826,7 +892,7 @@
 
           <div>
             <strong>1</strong>
-            <p>Negocio activo</p>
+            <p>Organización activa</p>
           </div>
         </article>
 
@@ -920,7 +986,7 @@
   </main>
 
 <!-- ================================================= -->
-<!-- PANEL DE NEGOCIO -->
+<!-- PANEL DE ORGANIZACIÓN -->
 <!-- ================================================= -->
 
 } @else if (vista() === 'negocios') {
@@ -930,11 +996,11 @@
     <section class="business-hero">
 
       <span class="tag">
-        Planify para Negocios
+        Planify para Organizaciones
       </span>
 
       <h1>
-        Panel del establecimiento
+        Panel de la organización
       </h1>
 
       <p>
