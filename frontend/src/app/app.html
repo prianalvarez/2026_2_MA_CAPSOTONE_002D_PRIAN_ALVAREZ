@@ -153,17 +153,110 @@
           con amigos, en pareja o en familia.
         </p>
 
-        <div class="search">
+        <div class="search-wrapper">
 
-          <input
-            type="text"
-            placeholder="Buscar restaurantes, parques, museos..."
-          />
+          <div class="search">
 
-          <button>
-            Buscar
-          </button>
+            <input
+              #buscador
+              type="text"
+              [value]="busqueda()"
+              placeholder="Buscar por nombre, comuna, categoría o panorama..."
+              autocomplete="off"
+              (focus)="activarSugerencias()"
+              (input)="actualizarBusqueda(buscador.value)"
+              (keyup.enter)="buscar(buscador.value)"
+            />
 
+            <button
+              type="button"
+              (click)="buscar(buscador.value)"
+            >
+              Buscar
+            </button>
+
+          </div>
+
+
+          @if (
+            mostrarSugerencias()
+            &&
+            busqueda().trim()
+          ) {
+
+            <div class="search-suggestions">
+
+              @for (
+                lugar of sugerenciasLugares();
+                track lugar.id
+              ) {
+
+                <button
+                  type="button"
+                  class="search-suggestion"
+                  (click)="elegirSugerencia(lugar)"
+                >
+
+                  <span class="suggestion-icon">
+                    📍
+                  </span>
+
+                  <span class="suggestion-text">
+
+                    <strong>
+                      {{ lugar.nombre }}
+                    </strong>
+
+                    <small>
+                      {{ lugar.categoria }}
+                      ·
+                      {{ lugar.comuna }}
+                    </small>
+
+                  </span>
+
+                  <span class="suggestion-arrow">
+                    →
+                  </span>
+
+                </button>
+
+              } @empty {
+
+                <div class="search-no-suggestions">
+
+                  <span>
+                    🔎
+                  </span>
+
+                  <div>
+                    <strong>
+                      No encontramos coincidencias
+                    </strong>
+
+                    <small>
+                      Prueba con otro nombre, comuna o categoría.
+                    </small>
+                  </div>
+
+                </div>
+
+              }
+
+            </div>
+
+          }
+
+        </div>
+
+        <div class="hero-stats">
+          <span>
+            📍 {{ lugares().length }} lugares disponibles
+          </span>
+
+          <span>
+            🎉 {{ eventos().length }} eventos publicados
+          </span>
         </div>
 
       </div>
@@ -181,48 +274,92 @@
 
       <div class="categories">
 
-        <button>
-          🍽️ Restaurantes
+        <button
+          [class.active]="categoriaSeleccionada() === 'TODOS'"
+          (click)="seleccionarCategoria('TODOS')"
+        >
+          ✨ Todos
         </button>
 
-        <button>
-          🌳 Parques
-        </button>
-
-        <button>
+        <button
+          [class.active]="categoriaSeleccionada() === 'CULTURA'"
+          (click)="seleccionarCategoria('CULTURA')"
+        >
           🎨 Cultura
         </button>
 
         <button
-          (click)="mostrarEventos()"
+          [class.active]="categoriaSeleccionada() === 'PARQUES'"
+          (click)="seleccionarCategoria('PARQUES')"
         >
-          🎵 Eventos
+          🌳 Parques
         </button>
 
-        <button>
-          ☕ Cafeterías
+        <button
+          [class.active]="categoriaSeleccionada() === 'GASTRONOMIA'"
+          (click)="seleccionarCategoria('GASTRONOMIA')"
+        >
+          🍽️ Gastronomía
+        </button>
+
+        <button
+          [class.active]="categoriaSeleccionada() === 'BARES_CAFES'"
+          (click)="seleccionarCategoria('BARES_CAFES')"
+        >
+          ☕ Bares y cafés
+        </button>
+
+        <button
+          [class.active]="categoriaSeleccionada() === 'PATRIMONIO'"
+          (click)="seleccionarCategoria('PATRIMONIO')"
+        >
+          🏛️ Patrimonio
+        </button>
+
+        <button
+          class="events-filter-button"
+          (click)="mostrarEventos()"
+        >
+          🎵 Ver eventos
         </button>
 
       </div>
 
 
-      <div class="section-header">
+      <div
+        id="resultados-lugares"
+        class="section-header"
+      >
 
         <div>
 
           <h2>
-            Lugares recomendados
+            {{ categoriaVisible() }}
           </h2>
 
           <p>
-            Algunas opciones para tu próximo panorama.
+            {{ lugaresFiltrados().length }}
+            resultado(s) de
+            {{ lugares().length }}
+            lugares disponibles.
           </p>
 
         </div>
 
-        <a>
-          Ver todos
-        </a>
+        @if (
+          busqueda()
+          ||
+          categoriaSeleccionada() !== 'TODOS'
+        ) {
+
+          <button
+            class="clear-filter-button"
+            (click)="limpiarFiltros()"
+          >
+            Limpiar filtros
+          </button>
+
+        }
 
       </div>
 
@@ -249,7 +386,7 @@
         }
 
 
-        @for (lugar of lugares(); track lugar.id) {
+        @for (lugar of lugaresFiltrados(); track lugar.id) {
 
           <article class="place-card">
 
@@ -293,6 +430,32 @@
             </div>
 
           </article>
+
+        } @empty {
+
+          @if (!cargando() && !error()) {
+
+            <div class="no-results">
+
+              <span>🔎</span>
+
+              <h3>
+                No encontramos lugares con esos filtros.
+              </h3>
+
+              <p>
+                Prueba con otro nombre, comuna o categoría.
+              </p>
+
+              <button
+                (click)="limpiarFiltros()"
+              >
+                Ver todos los lugares
+              </button>
+
+            </div>
+
+          }
 
         }
 
@@ -1278,8 +1441,47 @@
             </h3>
 
             <p>
-              📍 {{ lugar.direccion }}
+              📍 {{ lugar.direccion }},
+              {{ lugar.comuna }}
             </p>
+
+            <button
+              class="map-open-button"
+              (click)="abrirEnMapa(lugar)"
+            >
+              🧭 Cómo llegar
+            </button>
+
+          </section>
+
+
+          <!-- MAPA -->
+
+          <section class="detail-section map-section">
+
+            <div class="detail-section-header">
+
+              <h2>
+                Ubicación
+              </h2>
+
+              <p>
+                Mapa de referencia basado en la dirección registrada.
+              </p>
+
+            </div>
+
+            @if (mapaUrl()) {
+
+              <iframe
+                class="place-map"
+                [src]="mapaUrl()"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                title="Mapa de ubicación"
+              ></iframe>
+
+            }
 
           </section>
 

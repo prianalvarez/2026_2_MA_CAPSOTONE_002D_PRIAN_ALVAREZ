@@ -10,6 +10,11 @@ import {
   HttpHeaders
 } from '@angular/common/http';
 
+import {
+  DomSanitizer,
+  SafeResourceUrl
+} from '@angular/platform-browser';
+
 
 interface Lugar {
   id: number;
@@ -78,6 +83,9 @@ export class App implements OnInit {
 
   private http = inject(HttpClient);
 
+  private sanitizer =
+    inject(DomSanitizer);
+
 
   // =====================================================
   // API
@@ -106,6 +114,433 @@ export class App implements OnInit {
   vista = signal<Vista>('inicio');
 
   mensajeNegocio = signal('');
+
+
+  // =====================================================
+  // EXPLORACIÓN Y FILTROS
+  // =====================================================
+
+  busqueda = signal('');
+
+  mostrarSugerencias =
+    signal(false);
+
+  categoriaSeleccionada =
+    signal('TODOS');
+
+  mapaUrl =
+    signal<SafeResourceUrl | null>(null);
+
+
+  actualizarBusqueda(
+    valor: string
+  ): void {
+
+    this.busqueda.set(valor);
+
+    this.mostrarSugerencias.set(
+      valor.trim().length > 0
+    );
+  }
+
+
+  activarSugerencias(): void {
+
+    if (this.busqueda().trim()) {
+      this.mostrarSugerencias.set(true);
+    }
+  }
+
+
+  buscar(
+    valor: string
+  ): void {
+
+    this.busqueda.set(valor.trim());
+
+    this.mostrarSugerencias.set(false);
+
+    setTimeout(() => {
+
+      document
+        .getElementById('resultados-lugares')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+
+    }, 0);
+  }
+
+
+  sugerenciasLugares(): Lugar[] {
+
+    const consulta =
+      this.normalizarTexto(
+        this.busqueda().trim()
+      );
+
+    if (!consulta) {
+      return [];
+    }
+
+
+    return this.lugares()
+      .filter(
+        lugar => lugar.activo
+      )
+      .filter(lugar => {
+
+        const contenido =
+          this.normalizarTexto(
+            [
+              lugar.nombre,
+              lugar.comuna,
+              lugar.categoria,
+              lugar.direccion
+            ].join(' ')
+          );
+
+        return contenido.includes(
+          consulta
+        );
+      })
+      .sort((a, b) => {
+
+        const nombreA =
+          this.normalizarTexto(a.nombre);
+
+        const nombreB =
+          this.normalizarTexto(b.nombre);
+
+        const comunaA =
+          this.normalizarTexto(a.comuna);
+
+        const comunaB =
+          this.normalizarTexto(b.comuna);
+
+
+        const puntaje = (
+          nombre: string,
+          comuna: string
+        ): number => {
+
+          if (nombre.startsWith(consulta)) {
+            return 0;
+          }
+
+          if (nombre.includes(consulta)) {
+            return 1;
+          }
+
+          if (comuna.startsWith(consulta)) {
+            return 2;
+          }
+
+          if (comuna.includes(consulta)) {
+            return 3;
+          }
+
+          return 4;
+        };
+
+
+        const puntajeA =
+          puntaje(nombreA, comunaA);
+
+        const puntajeB =
+          puntaje(nombreB, comunaB);
+
+
+        if (puntajeA !== puntajeB) {
+          return puntajeA - puntajeB;
+        }
+
+        return a.nombre.localeCompare(
+          b.nombre,
+          'es'
+        );
+      })
+      .slice(0, 8);
+  }
+
+
+  elegirSugerencia(
+    lugar: Lugar
+  ): void {
+
+    this.busqueda.set(
+      lugar.nombre
+    );
+
+    this.mostrarSugerencias.set(false);
+
+    this.verLugar(lugar);
+  }
+
+
+  seleccionarCategoria(
+    categoria: string
+  ): void {
+
+    this.mostrarSugerencias.set(false);
+
+    this.categoriaSeleccionada.set(
+      categoria
+    );
+
+    setTimeout(() => {
+
+      document
+        .getElementById('resultados-lugares')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+
+    }, 0);
+  }
+
+
+  limpiarFiltros(): void {
+
+    this.busqueda.set('');
+
+    this.mostrarSugerencias.set(false);
+
+    this.categoriaSeleccionada.set(
+      'TODOS'
+    );
+  }
+
+
+  private normalizarTexto(
+    texto: string
+  ): string {
+
+    return (texto || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+
+  private coincideCategoria(
+    lugar: Lugar,
+    filtro: string
+  ): boolean {
+
+    if (filtro === 'TODOS') {
+      return true;
+    }
+
+    const texto = this.normalizarTexto(
+      [
+        lugar.nombre,
+        lugar.categoria,
+        lugar.descripcion,
+        lugar.comuna
+      ].join(' ')
+    );
+
+
+    const grupos:
+      Record<string, string[]> = {
+
+      CULTURA: [
+        'museo',
+        'arte',
+        'cultural',
+        'teatro',
+        'exposicion',
+        'biblioteca',
+        'casa museo'
+      ],
+
+      PARQUES: [
+        'parque',
+        'cerro',
+        'jardin',
+        'naturaleza',
+        'mirador'
+      ],
+
+      GASTRONOMIA: [
+        'restaurante',
+        'gastronom',
+        'mercado',
+        'fuente de soda',
+        'sanguch',
+        'comida',
+        'food truck',
+        'picada',
+        'cocina'
+      ],
+
+      BARES_CAFES: [
+        'bar',
+        'cafe',
+        'cafeter',
+        'cervec',
+        'brewpub',
+        'choper',
+        'restobar',
+        'coctel'
+      ],
+
+      PATRIMONIO: [
+        'histor',
+        'patrimonio',
+        'palacio',
+        'barrio',
+        'plaza',
+        'iglesia',
+        'catedral',
+        'monumento',
+        'arquitectura'
+      ]
+    };
+
+
+    return (
+      grupos[filtro]
+      ?.some(
+        termino =>
+          texto.includes(termino)
+      )
+      ?? true
+    );
+  }
+
+
+  lugaresFiltrados(): Lugar[] {
+
+    const consulta =
+      this.normalizarTexto(
+        this.busqueda().trim()
+      );
+
+    const categoria =
+      this.categoriaSeleccionada();
+
+
+    return this.lugares()
+      .filter(
+        lugar => lugar.activo
+      )
+      .filter(
+        lugar =>
+          this.coincideCategoria(
+            lugar,
+            categoria
+          )
+      )
+      .filter(lugar => {
+
+        if (!consulta) {
+          return true;
+        }
+
+        const contenido =
+          this.normalizarTexto(
+            [
+              lugar.nombre,
+              lugar.descripcion,
+              lugar.direccion,
+              lugar.comuna,
+              lugar.categoria
+            ].join(' ')
+          );
+
+        return contenido.includes(
+          consulta
+        );
+      });
+  }
+
+
+  categoriaVisible(): string {
+
+    switch (
+      this.categoriaSeleccionada()
+    ) {
+
+      case 'CULTURA':
+        return 'Cultura';
+
+      case 'PARQUES':
+        return 'Parques y naturaleza';
+
+      case 'GASTRONOMIA':
+        return 'Gastronomía';
+
+      case 'BARES_CAFES':
+        return 'Bares y cafés';
+
+      case 'PATRIMONIO':
+        return 'Patrimonio';
+
+      default:
+        return 'Todos los lugares';
+    }
+  }
+
+
+  private consultaMapa(
+    lugar: Lugar
+  ): string {
+
+    return [
+      lugar.nombre,
+      lugar.direccion,
+      lugar.comuna,
+      'Santiago',
+      'Chile'
+    ]
+      .filter(Boolean)
+      .join(', ');
+  }
+
+
+  private actualizarMapa(
+    lugar: Lugar
+  ): void {
+
+    const consulta =
+      encodeURIComponent(
+        this.consultaMapa(lugar)
+      );
+
+    const url =
+      `https://www.google.com/maps?q=${consulta}&output=embed`;
+
+    this.mapaUrl.set(
+      this.sanitizer
+        .bypassSecurityTrustResourceUrl(
+          url
+        )
+    );
+  }
+
+
+  abrirEnMapa(
+    lugar: Lugar
+  ): void {
+
+    const consulta =
+      encodeURIComponent(
+        this.consultaMapa(lugar)
+      );
+
+    const url =
+      `https://www.google.com/maps/search/?api=1&query=${consulta}`;
+
+    window.open(
+      url,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  }
 
 
   // =====================================================
@@ -251,6 +686,8 @@ export class App implements OnInit {
 
     this.lugarSeleccionado.set(lugar);
 
+    this.actualizarMapa(lugar);
+
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
@@ -261,6 +698,8 @@ export class App implements OnInit {
   volverInicio(): void {
 
     this.lugarSeleccionado.set(null);
+
+    this.mapaUrl.set(null);
 
     this.vista.set('inicio');
 
@@ -914,7 +1353,7 @@ export class App implements OnInit {
       this.mensajeNegocio.set(
         'Tu organización todavía '
         +
-        'no está verificado.'
+        'no está verificada.'
       );
 
       return;
