@@ -95,6 +95,9 @@ export class App implements OnInit {
   // API
   // =====================================================
 
+  // HOY usamos backend local.
+  // Cuando terminemos y subamos a Render,
+  // cambiaremos solamente esta línea.
   // Backend local durante desarrollo y backend público en Render.
   private readonly API_URL =
     (
@@ -103,7 +106,7 @@ export class App implements OnInit {
       window.location.hostname === '127.0.0.1'
     )
       ? 'http://127.0.0.1:8000/api'
-      : 'https://planify-api-prian-alvarez-2026.onrender.com/api';
+      : 'https://two026-2-ma-capsotone-002d-prian-alvarez.onrender.com/api';
 
 
   // =====================================================

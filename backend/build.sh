@@ -5,13 +5,16 @@ set -o errexit
 echo "=== Instalando dependencias ==="
 pip install -r requirements.txt
 
-echo "=== Archivos estaticos ==="
+echo "=== Recolectando archivos estaticos ==="
 python manage.py collectstatic --no-input
 
-echo "=== Migraciones ==="
+echo "=== Aplicando migraciones ==="
 python manage.py migrate
 
-echo "=== Creando/actualizando Fundador ==="
+echo "=== Cargando lugares de Planify ==="
+python cargar_96_lugares.py
+
+echo "=== Creando o actualizando Fundador ==="
 python manage.py shell <<'PY'
 import os
 from django.contrib.auth import get_user_model
@@ -23,7 +26,10 @@ email = os.getenv("DJANGO_SUPERUSER_EMAIL", "").strip()
 password = os.getenv("DJANGO_SUPERUSER_PASSWORD", "")
 
 if not username or not password:
-    print("AVISO: faltan DJANGO_SUPERUSER_USERNAME o DJANGO_SUPERUSER_PASSWORD")
+    print(
+        "AVISO: faltan DJANGO_SUPERUSER_USERNAME "
+        "o DJANGO_SUPERUSER_PASSWORD"
+    )
 else:
     user, created = User.objects.get_or_create(
         username=username
@@ -44,4 +50,4 @@ else:
         print(f"Fundador actualizado correctamente: {username}")
 PY
 
-echo "=== Build terminado ==="
+echo "=== PLANIFY LISTO PARA INICIAR ==="
