@@ -1150,3 +1150,64 @@ nav a {
 
 }
 
+
+/* ================================================= */
+/* REGISTRO POR TIPO DE CUENTA */
+/* ================================================= */
+
+.register-type-header {
+  margin: 4px 0 26px;
+  padding: 20px;
+  border-radius: 14px;
+  background: #f6f7f9;
+}
+
+.register-type-header h2 {
+  margin: 12px 0 6px;
+  font-size: 1.25rem;
+}
+
+.register-type-header p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.organization-header {
+  background: #f5f6f8;
+}
+
+.field-help {
+  margin-top: -2px;
+  color: #777;
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.organization-verification-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 4px 0 20px;
+  padding: 16px;
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  background: #f7f8fa;
+}
+
+.organization-verification-info > span {
+  font-size: 24px;
+}
+
+.organization-verification-info strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.organization-verification-info p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+

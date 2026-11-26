@@ -37,6 +37,8 @@ interface Evento {
   hora: string;
   lugar: number;
   lugar_nombre: string;
+  organizacion: number | null;
+  organizacion_nombre: string | null;
   activo: boolean;
   fecha_creacion: string;
 }
@@ -54,6 +56,7 @@ interface UsuarioSesion {
 
   estado_negocio: string | null;
   nombre_negocio: string | null;
+  rut_negocio: string | null;
 }
 
 
@@ -69,6 +72,7 @@ type Vista =
   | 'eventos'
   | 'negocios'
   | 'admin'
+  | 'fundador'
   | 'login'
   | 'registro'
   | 'perfil';
@@ -91,11 +95,15 @@ export class App implements OnInit {
   // API
   // =====================================================
 
-  // HOY usamos backend local.
-  // Cuando terminemos y subamos a Render,
-  // cambiaremos solamente esta línea.
+  // Backend local durante desarrollo y backend público en Render.
   private readonly API_URL =
-    'http://127.0.0.1:8000/api';
+    (
+      window.location.hostname === 'localhost'
+      ||
+      window.location.hostname === '127.0.0.1'
+    )
+      ? 'http://127.0.0.1:8000/api'
+      : 'https://planify-api-prian-alvarez-2026.onrender.com/api';
 
 
   // =====================================================
@@ -114,6 +122,9 @@ export class App implements OnInit {
   vista = signal<Vista>('inicio');
 
   mensajeNegocio = signal('');
+
+  eventoEditando =
+    signal<Evento | null>(null);
 
 
   // =====================================================
@@ -579,6 +590,34 @@ export class App implements OnInit {
   }
 
 
+  tipoRegistro =
+    signal<'PERSONA' | 'NEGOCIO'>(
+      'PERSONA'
+    );
+
+
+  seleccionarTipoRegistro(
+    tipo: 'PERSONA' | 'NEGOCIO'
+  ): void {
+
+    this.tipoRegistro.set(tipo);
+
+    this.mensajeAuth.set('');
+  }
+
+
+  private esRutaFundador(): boolean {
+
+    const ruta = (
+      window.location.pathname
+      .replace(/\/+$/, '')
+      .toLowerCase()
+    );
+
+    return ruta === '/fundador';
+  }
+
+
   // =====================================================
   // INICIO
   // =====================================================
@@ -588,6 +627,19 @@ export class App implements OnInit {
     this.obtenerLugares();
 
     this.obtenerEventos();
+
+
+    if (this.esRutaFundador()) {
+
+      this.vista.set('fundador');
+
+      if (this.token()) {
+        this.recuperarSesion();
+      }
+
+      return;
+    }
+
 
     if (this.token()) {
       this.recuperarSesion();
@@ -731,6 +783,8 @@ export class App implements OnInit {
 
     this.mensajeAuth.set('');
 
+    this.tipoAcceso.set('PERSONA');
+
     this.vista.set('login');
 
     window.scrollTo({
@@ -745,6 +799,8 @@ export class App implements OnInit {
     this.lugarSeleccionado.set(null);
 
     this.mensajeAuth.set('');
+
+    this.tipoRegistro.set('PERSONA');
 
     this.vista.set('registro');
 
@@ -772,6 +828,28 @@ export class App implements OnInit {
       top: 0,
       behavior: 'smooth'
     });
+  }
+
+
+  irInicioSegunRol(): void {
+
+    if (this.esNegocio()) {
+
+      this.mostrarNegocios();
+
+      return;
+    }
+
+
+    if (this.esAdmin()) {
+
+      this.mostrarAdmin();
+
+      return;
+    }
+
+
+    this.volverInicio();
   }
 
 
@@ -917,6 +995,36 @@ export class App implements OnInit {
 
         next: (usuario) => {
 
+          if (this.esRutaFundador()) {
+
+            if (
+              usuario.tipo_usuario
+              === 'ADMIN'
+            ) {
+
+              this.usuarioActual.set(
+                usuario
+              );
+
+              this.vista.set('admin');
+
+            } else {
+
+              this.limpiarSesion();
+
+              this.vista.set(
+                'fundador'
+              );
+
+              this.mensajeAuth.set(
+                'Acceso reservado al fundador de Planify.'
+              );
+            }
+
+            return;
+          }
+
+
           this.usuarioActual.set(
             usuario
           );
@@ -980,12 +1088,11 @@ export class App implements OnInit {
 
 
           if (
-            tipoReal !== 'ADMIN'
-            &&
             tipoReal !== this.tipoAcceso()
           ) {
 
             this.cargandoAuth.set(false);
+
 
             if (tipoReal === 'PERSONA') {
 
@@ -995,14 +1102,25 @@ export class App implements OnInit {
                 'Selecciona "Usuario" para ingresar.'
               );
 
-            } else {
+
+            } else if (
+              tipoReal === 'NEGOCIO'
+            ) {
 
               this.mensajeAuth.set(
                 'Esta cuenta corresponde a una organización. '
                 +
                 'Selecciona "Organización" para ingresar.'
               );
+
+
+            } else {
+
+              this.mensajeAuth.set(
+                'Esta cuenta no corresponde a un acceso público.'
+              );
             }
+
 
             return;
           }
@@ -1080,7 +1198,8 @@ export class App implements OnInit {
     rangoEdad: string,
     comuna: string,
     intereses: string,
-    nombreNegocio: string
+    nombreNegocio: string,
+    rutNegocio: string
   ): void {
 
     nombre = nombre.trim();
@@ -1133,6 +1252,20 @@ export class App implements OnInit {
     }
 
 
+    if (
+      tipoUsuario === 'NEGOCIO'
+      &&
+      !rutNegocio.trim()
+    ) {
+
+      this.mensajeAuth.set(
+        'Ingresa el RUT de la organización.'
+      );
+
+      return;
+    }
+
+
     const datos = {
 
       nombre,
@@ -1152,7 +1285,10 @@ export class App implements OnInit {
       intereses,
 
       nombre_negocio:
-        nombreNegocio.trim()
+        nombreNegocio.trim(),
+
+      rut_negocio:
+        rutNegocio.trim()
     };
 
 
@@ -1236,6 +1372,26 @@ export class App implements OnInit {
                 .nombre_negocio[0]
             );
 
+          } else if (
+            err?.error
+              ?.rut_negocio
+          ) {
+
+            this.mensajeAuth.set(
+              err.error
+                .rut_negocio[0]
+            );
+
+          } else if (
+            err?.error
+              ?.non_field_errors
+          ) {
+
+            this.mensajeAuth.set(
+              err.error
+                .non_field_errors[0]
+            );
+
           } else {
 
             this.mensajeAuth.set(
@@ -1248,17 +1404,137 @@ export class App implements OnInit {
   }
 
 
+  iniciarSesionFundador(
+    identificador: string,
+    password: string
+  ): void {
+
+    identificador =
+      identificador.trim();
+
+
+    if (
+      !identificador
+      ||
+      !password
+    ) {
+
+      this.mensajeAuth.set(
+        'Completa usuario y contraseña.'
+      );
+
+      return;
+    }
+
+
+    this.cargandoAuth.set(true);
+
+    this.mensajeAuth.set('');
+
+
+    this.http
+      .post<AuthResponse>(
+        `${this.API_URL}/auth/login/`,
+        {
+          email:
+            identificador,
+
+          password
+        }
+      )
+      .subscribe({
+
+        next: (respuesta) => {
+
+          if (
+            respuesta.usuario
+              .tipo_usuario
+            !== 'ADMIN'
+          ) {
+
+            this.cargandoAuth.set(
+              false
+            );
+
+            this.mensajeAuth.set(
+              'Acceso denegado. Esta sección está reservada al fundador de Planify.'
+            );
+
+            return;
+          }
+
+
+          this.guardarSesion(
+            respuesta
+          );
+
+          this.cargandoAuth.set(false);
+
+          this.mensajeAuth.set('');
+
+          this.vista.set('admin');
+
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        },
+
+
+        error: (err) => {
+
+          console.error(
+            'Error de acceso fundador:',
+            err
+          );
+
+          this.cargandoAuth.set(false);
+
+          this.mensajeAuth.set(
+            err?.error?.error
+            ||
+            'Usuario o contraseña incorrectos.'
+          );
+        }
+
+      });
+  }
+
+
   // =====================================================
   // LOGOUT
   // =====================================================
 
   cerrarSesion(): void {
 
+    const eraFundador =
+      this.esAdmin()
+      ||
+      this.esRutaFundador();
+
+
     if (!this.token()) {
 
       this.limpiarSesion();
 
-      this.volverInicio();
+      if (eraFundador) {
+
+        window.history.replaceState(
+          {},
+          '',
+          '/fundador'
+        );
+
+        this.vista.set(
+          'fundador'
+        );
+
+        this.mensajeAuth.set('');
+
+      } else {
+
+        this.volverInicio();
+      }
 
       return;
     }
@@ -1279,7 +1555,25 @@ export class App implements OnInit {
 
           this.limpiarSesion();
 
-          this.volverInicio();
+
+          if (eraFundador) {
+
+            window.history.replaceState(
+              {},
+              '',
+              '/fundador'
+            );
+
+            this.vista.set(
+              'fundador'
+            );
+
+            this.mensajeAuth.set('');
+
+          } else {
+
+            this.volverInicio();
+          }
         },
 
         error: () => {
@@ -1288,7 +1582,25 @@ export class App implements OnInit {
           // cerramos la sesión local.
           this.limpiarSesion();
 
-          this.volverInicio();
+
+          if (eraFundador) {
+
+            window.history.replaceState(
+              {},
+              '',
+              '/fundador'
+            );
+
+            this.vista.set(
+              'fundador'
+            );
+
+            this.mensajeAuth.set('');
+
+          } else {
+
+            this.volverInicio();
+          }
         }
 
       });
@@ -1325,6 +1637,25 @@ export class App implements OnInit {
       top: 0,
       behavior: 'smooth'
     });
+  }
+
+
+  eventosDeMiOrganizacion(): Evento[] {
+
+    const usuario = this.usuarioActual();
+
+    if (
+      !usuario
+      ||
+      usuario.tipo_usuario !== 'NEGOCIO'
+    ) {
+      return [];
+    }
+
+    return this.eventos().filter(
+      evento =>
+        evento.organizacion === usuario.id
+    );
   }
 
 
@@ -1427,11 +1758,270 @@ export class App implements OnInit {
           );
 
           this.mensajeNegocio.set(
+            err?.error?.detail
+            ||
             '❌ No se pudo publicar el evento.'
           );
         }
 
       });
+  }
+
+
+  iniciarEdicionEvento(
+    evento: Evento
+  ): void {
+
+    const usuario =
+      this.usuarioActual();
+
+
+    if (
+      !usuario
+      ||
+      usuario.tipo_usuario !== 'NEGOCIO'
+      ||
+      evento.organizacion !== usuario.id
+    ) {
+
+      this.mensajeNegocio.set(
+        'Solo puedes editar eventos de tu organización.'
+      );
+
+      return;
+    }
+
+
+    this.eventoEditando.set(
+      evento
+    );
+
+    this.mensajeNegocio.set('');
+
+    setTimeout(() => {
+
+      document
+        .getElementById(
+          'editar-evento'
+        )
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+
+    }, 0);
+  }
+
+
+  cancelarEdicionEvento(): void {
+
+    this.eventoEditando.set(null);
+
+    this.mensajeNegocio.set('');
+  }
+
+
+  guardarEdicionEvento(
+    titulo: string,
+    descripcion: string,
+    fecha: string,
+    hora: string,
+    lugar: string
+  ): void {
+
+    const evento =
+      this.eventoEditando();
+
+
+    if (!evento) {
+      return;
+    }
+
+
+    if (!this.negocioPuedePublicar()) {
+
+      this.mensajeNegocio.set(
+        'La organización debe estar verificada.'
+      );
+
+      return;
+    }
+
+
+    if (
+      !titulo.trim()
+      ||
+      !descripcion.trim()
+      ||
+      !fecha
+      ||
+      !hora
+      ||
+      !lugar
+    ) {
+
+      this.mensajeNegocio.set(
+        'Completa todos los campos antes de guardar.'
+      );
+
+      return;
+    }
+
+
+    const datos = {
+
+      titulo:
+        titulo.trim(),
+
+      descripcion:
+        descripcion.trim(),
+
+      fecha,
+
+      hora,
+
+      lugar:
+        Number(lugar),
+
+      activo:
+        evento.activo
+    };
+
+
+    this.http
+      .put<Evento>(
+        `${this.API_URL}/eventos/${evento.id}/`,
+        datos,
+        {
+          headers:
+            this.headersAutenticados()
+        }
+      )
+      .subscribe({
+
+        next: () => {
+
+          this.eventoEditando.set(null);
+
+          this.mensajeNegocio.set(
+            '✅ Evento actualizado correctamente.'
+          );
+
+          this.obtenerEventos();
+        },
+
+        error: (err) => {
+
+          console.error(
+            'Error al editar evento:',
+            err
+          );
+
+          this.mensajeNegocio.set(
+            err?.error?.detail
+            ||
+            '❌ No se pudo actualizar el evento.'
+          );
+        }
+
+      });
+  }
+
+
+  eliminarEvento(
+    evento: Evento
+  ): void {
+
+    const usuario =
+      this.usuarioActual();
+
+
+    if (
+      !usuario
+      ||
+      usuario.tipo_usuario !== 'NEGOCIO'
+      ||
+      evento.organizacion !== usuario.id
+    ) {
+
+      this.mensajeNegocio.set(
+        'Solo puedes eliminar eventos de tu organización.'
+      );
+
+      return;
+    }
+
+
+    const confirmar =
+      window.confirm(
+        `¿Eliminar el evento "${evento.titulo}"?`
+      );
+
+
+    if (!confirmar) {
+      return;
+    }
+
+
+    this.http
+      .delete(
+        `${this.API_URL}/eventos/${evento.id}/`,
+        {
+          headers:
+            this.headersAutenticados()
+        }
+      )
+      .subscribe({
+
+        next: () => {
+
+          if (
+            this.eventoEditando()?.id
+            === evento.id
+          ) {
+
+            this.eventoEditando.set(
+              null
+            );
+          }
+
+
+          this.mensajeNegocio.set(
+            '✅ Evento eliminado correctamente.'
+          );
+
+          this.obtenerEventos();
+        },
+
+        error: (err) => {
+
+          console.error(
+            'Error al eliminar evento:',
+            err
+          );
+
+          this.mensajeNegocio.set(
+            err?.error?.detail
+            ||
+            '❌ No se pudo eliminar el evento.'
+          );
+        }
+
+      });
+  }
+
+
+  urlDjangoAdmin(): string {
+
+    return (
+      this.API_URL
+        .replace(
+          /\/api\/?$/,
+          ''
+        )
+      +
+      '/admin/'
+    );
   }
 
 

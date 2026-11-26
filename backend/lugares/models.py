@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Lugar(models.Model):
@@ -25,6 +26,14 @@ class Evento(models.Model):
         Lugar,
         on_delete=models.CASCADE,
         related_name='eventos'
+    )
+
+    organizacion = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name='eventos_publicados',
+        blank=True,
+        null=True
     )
 
     activo = models.BooleanField(default=True)

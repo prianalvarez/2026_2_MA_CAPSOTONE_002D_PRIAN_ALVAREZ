@@ -1,8 +1,10 @@
+@if (vista() !== 'fundador') {
+
 <header class="navbar">
 
   <div
     class="brand"
-    (click)="volverInicio()"
+    (click)="irInicioSegunRol()"
   >
     Planify
   </div>
@@ -10,48 +12,8 @@
 
   <nav>
 
-    <a
-      [class.active]="
-        vista() === 'inicio'
-        &&
-        !lugarSeleccionado()
-      "
-      (click)="volverInicio()"
-    >
-      Inicio
-    </a>
-
-
-    <a
-      (click)="volverInicio()"
-    >
-      Explorar
-    </a>
-
-
-    <a
-      [class.active]="
-        vista() === 'eventos'
-      "
-      (click)="mostrarEventos()"
-    >
-      Eventos
-    </a>
-
-
-    @if (esPersona()) {
-
-      <a
-        [class.active]="
-          vista() === 'perfil'
-        "
-        (click)="mostrarPerfil()"
-      >
-        Mi perfil
-      </a>
-
-    }
-
+    <!-- ORGANIZACIÓN:
+         solo ve su panel propio -->
 
     @if (esNegocio()) {
 
@@ -64,51 +26,10 @@
         Mi organización
       </a>
 
-    }
-
-
-    @if (esAdmin()) {
-
-      <a
-        [class.active]="
-          vista() === 'admin'
-        "
-        (click)="mostrarAdmin()"
-      >
-        Administración
-      </a>
-
-    }
-
-
-    @if (!usuarioActual()) {
-
-      <a
-        [class.active]="
-          vista() === 'login'
-        "
-        (click)="mostrarLogin()"
-      >
-        Iniciar sesión
-      </a>
-
-
-      <a
-        [class.active]="
-          vista() === 'registro'
-        "
-        (click)="mostrarRegistro()"
-      >
-        Crear cuenta
-      </a>
-
-    } @else {
 
       <span class="nav-user">
-
-        👤
-        {{ usuarioActual()?.nombre }}
-
+        🏛️
+        {{ usuarioActual()?.nombre_negocio || usuarioActual()?.nombre }}
       </span>
 
 
@@ -119,11 +40,129 @@
         Salir
       </button>
 
+
+    <!-- SUPERADMIN:
+         solo ve administración -->
+
+    } @else if (esAdmin()) {
+
+      <a
+        [class.active]="
+          vista() === 'admin'
+        "
+        (click)="mostrarAdmin()"
+      >
+        Panel Fundador
+      </a>
+
+
+      <span class="nav-user">
+        👑
+        {{ usuarioActual()?.nombre }}
+      </span>
+
+
+      <button
+        class="logout-button"
+        (click)="cerrarSesion()"
+      >
+        Salir
+      </button>
+
+
+    <!-- VISITANTE / USUARIO NORMAL -->
+
+    } @else {
+
+      <a
+        [class.active]="
+          vista() === 'inicio'
+          &&
+          !lugarSeleccionado()
+        "
+        (click)="volverInicio()"
+      >
+        Inicio
+      </a>
+
+
+      <a
+        (click)="volverInicio()"
+      >
+        Explorar
+      </a>
+
+
+      <a
+        [class.active]="
+          vista() === 'eventos'
+        "
+        (click)="mostrarEventos()"
+      >
+        Eventos
+      </a>
+
+
+      @if (esPersona()) {
+
+        <a
+          [class.active]="
+            vista() === 'perfil'
+          "
+          (click)="mostrarPerfil()"
+        >
+          Mi perfil
+        </a>
+
+      }
+
+
+      @if (!usuarioActual()) {
+
+        <a
+          [class.active]="
+            vista() === 'login'
+          "
+          (click)="mostrarLogin()"
+        >
+          Iniciar sesión
+        </a>
+
+
+        <a
+          [class.active]="
+            vista() === 'registro'
+          "
+          (click)="mostrarRegistro()"
+        >
+          Crear cuenta
+        </a>
+
+      } @else {
+
+        <span class="nav-user">
+          👤
+          {{ usuarioActual()?.nombre }}
+        </span>
+
+
+        <button
+          class="logout-button"
+          (click)="cerrarSesion()"
+        >
+          Salir
+        </button>
+
+      }
+
     }
 
   </nav>
 
 </header>
+
+}
+
 
 
 <!-- ================================================= -->
@@ -592,6 +631,93 @@
 
 
 <!-- ================================================= -->
+<!-- ACCESO FUNDADOR - URL RESERVADA /fundador -->
+<!-- ================================================= -->
+
+} @else if (vista() === 'fundador') {
+
+  <main class="auth-page">
+
+    <section class="auth-card">
+
+      <div
+        style="
+          font-size: 3rem;
+          text-align: center;
+          margin-bottom: 12px;
+        "
+      >
+        👑
+      </div>
+
+      <span class="tag">
+        Acceso privado
+      </span>
+
+      <h1>
+        Fundador de Planify
+      </h1>
+
+      <p class="auth-description">
+        Panel reservado para la administración general
+        de la plataforma.
+      </p>
+
+
+      <label>
+        Usuario o correo
+
+        <input
+          #fundadorUsuario
+          type="text"
+          placeholder="Usuario o correo"
+          autocomplete="username"
+        />
+      </label>
+
+
+      <label>
+        Contraseña
+
+        <input
+          #fundadorPassword
+          type="password"
+          placeholder="Contraseña"
+          autocomplete="current-password"
+        />
+      </label>
+
+
+      <button
+        class="auth-main-button"
+        [disabled]="cargandoAuth()"
+        (click)="iniciarSesionFundador(
+          fundadorUsuario.value,
+          fundadorPassword.value
+        )"
+      >
+        @if (cargandoAuth()) {
+          Verificando acceso...
+        } @else {
+          Entrar al panel fundador
+        }
+      </button>
+
+
+      @if (mensajeAuth()) {
+
+        <div class="auth-message">
+          {{ mensajeAuth() }}
+        </div>
+
+      }
+
+    </section>
+
+  </main>
+
+
+<!-- ================================================= -->
 <!-- LOGIN -->
 <!-- ================================================= -->
 
@@ -637,7 +763,6 @@
             </small>
           </div>
         </button>
-
       </div>
 
 
@@ -655,6 +780,7 @@
           Accede a Planify para descubrir lugares,
           eventos y experiencias.
         </p>
+
 
       } @else {
 
@@ -675,13 +801,13 @@
 
 
       <label>
-        Correo electrónico
+        Correo o nombre de usuario
 
         <input
           #loginEmail
-          type="email"
-          placeholder="correo@ejemplo.cl"
-          autocomplete="email"
+          type="text"
+          placeholder="correo@ejemplo.cl o usuario"
+          autocomplete="username"
         />
       </label>
 
@@ -749,161 +875,381 @@
       </h1>
 
       <p class="auth-description">
-        Regístrate como usuario o como organización.
+        Elige el tipo de cuenta que quieres crear.
       </p>
 
-      <label>
-        Nombre
 
-        <input
-          #registroNombre
-          type="text"
-          placeholder="Tu nombre"
-        />
-      </label>
+      <!-- TIPO DE CUENTA -->
 
-      <label>
-        Correo electrónico
+      <div class="login-role-selector">
 
-        <input
-          #registroEmail
-          type="email"
-          placeholder="correo@ejemplo.cl"
-          autocomplete="email"
-        />
-      </label>
+        <button
+          type="button"
+          class="login-role-option"
+          [class.active]="tipoRegistro() === 'PERSONA'"
+          (click)="seleccionarTipoRegistro('PERSONA')"
+        >
+          <span>👤</span>
 
-      <div class="form-row">
+          <div>
+            <strong>Usuario</strong>
 
-        <label>
-          Contraseña
+            <small>
+              Descubre lugares, eventos y panoramas
+            </small>
+          </div>
+        </button>
 
-          <input
-            #registroPassword
-            type="password"
-            placeholder="Mínimo 6 caracteres"
-            autocomplete="new-password"
-          />
-        </label>
 
-        <label>
-          Confirmar contraseña
+        <button
+          type="button"
+          class="login-role-option"
+          [class.active]="tipoRegistro() === 'NEGOCIO'"
+          (click)="seleccionarTipoRegistro('NEGOCIO')"
+        >
+          <span>🏛️</span>
 
-          <input
-            #registroPassword2
-            type="password"
-            placeholder="Repite tu contraseña"
-            autocomplete="new-password"
-          />
-        </label>
+          <div>
+            <strong>Organización</strong>
+
+            <small>
+              Registra tu negocio, institución o emprendimiento
+            </small>
+          </div>
+        </button>
 
       </div>
 
-      <label>
-        Tipo de cuenta
 
-        <select #registroTipo>
-          <option value="PERSONA">
-            Persona
-          </option>
+      <!-- ================================================= -->
+      <!-- REGISTRO USUARIO PERSONA -->
+      <!-- ================================================= -->
 
-          <option value="NEGOCIO">
-            Organización
-          </option>
-        </select>
-      </label>
+      @if (tipoRegistro() === 'PERSONA') {
 
-      <label>
-        Nombre de la organización
+        <div class="register-type-header">
 
-        <input
-          #registroNegocio
-          type="text"
-          placeholder="Solo para cuentas de organización"
-        />
-      </label>
+          <span class="tag">
+            Cuenta de usuario
+          </span>
 
-      <div class="form-row">
+          <h2>
+            Crea tu perfil personal
+          </h2>
+
+          <p>
+            Regístrate para explorar Planify y acceder
+            a funciones personalizadas.
+          </p>
+
+        </div>
+
 
         <label>
-          Rango de edad
+          Nombre
 
-          <select #registroEdad>
-            <option value="">
-              Prefiero no indicar
-            </option>
-
-            <option value="18-24">
-              18 - 24
-            </option>
-
-            <option value="25-34">
-              25 - 34
-            </option>
-
-            <option value="35-44">
-              35 - 44
-            </option>
-
-            <option value="45-54">
-              45 - 54
-            </option>
-
-            <option value="55+">
-              55+
-            </option>
-          </select>
+          <input
+            #registroNombrePersona
+            type="text"
+            placeholder="Tu nombre"
+            autocomplete="name"
+          />
         </label>
+
+
+        <label>
+          Correo electrónico
+
+          <input
+            #registroEmailPersona
+            type="email"
+            placeholder="correo@ejemplo.cl"
+            autocomplete="email"
+          />
+        </label>
+
+
+        <div class="form-row">
+
+          <label>
+            Contraseña
+
+            <input
+              #registroPasswordPersona
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password"
+            />
+          </label>
+
+
+          <label>
+            Confirmar contraseña
+
+            <input
+              #registroPassword2Persona
+              type="password"
+              placeholder="Repite tu contraseña"
+              autocomplete="new-password"
+            />
+          </label>
+
+        </div>
+
+
+        <div class="form-row">
+
+          <label>
+            Rango de edad
+
+            <select #registroEdadPersona>
+
+              <option value="">
+                Prefiero no indicar
+              </option>
+
+              <option value="18-24">
+                18 - 24
+              </option>
+
+              <option value="25-34">
+                25 - 34
+              </option>
+
+              <option value="35-44">
+                35 - 44
+              </option>
+
+              <option value="45-54">
+                45 - 54
+              </option>
+
+              <option value="55+">
+                55+
+              </option>
+
+            </select>
+          </label>
+
+
+          <label>
+            Comuna
+
+            <input
+              #registroComunaPersona
+              type="text"
+              placeholder="Ej: Maipú"
+            />
+          </label>
+
+        </div>
+
+
+        <label>
+          Intereses
+
+          <input
+            #registroInteresesPersona
+            type="text"
+            placeholder="Ej: parques, gastronomía, cultura"
+          />
+        </label>
+
+
+        <button
+          class="auth-main-button"
+          [disabled]="cargandoAuth()"
+          (click)="registrarUsuario(
+            registroNombrePersona.value,
+            registroEmailPersona.value,
+            registroPasswordPersona.value,
+            registroPassword2Persona.value,
+            'PERSONA',
+            registroEdadPersona.value,
+            registroComunaPersona.value,
+            registroInteresesPersona.value,
+            '',
+            ''
+          )"
+        >
+          @if (cargandoAuth()) {
+            Creando cuenta...
+          } @else {
+            Crear cuenta de usuario
+          }
+        </button>
+
+      } @else {
+
+        <!-- ================================================= -->
+        <!-- REGISTRO ORGANIZACIÓN -->
+        <!-- ================================================= -->
+
+        <div class="register-type-header organization-header">
+
+          <span class="tag">
+            Cuenta de organización
+          </span>
+
+          <h2>
+            Registra tu organización
+          </h2>
+
+          <p>
+            Ingresa los datos del responsable y de la organización.
+            La cuenta quedará pendiente de verificación antes de publicar.
+          </p>
+
+        </div>
+
+
+        <label>
+          Nombre del responsable
+
+          <input
+            #registroNombreOrganizacion
+            type="text"
+            placeholder="Nombre de la persona responsable"
+            autocomplete="name"
+          />
+        </label>
+
+
+        <label>
+          Correo electrónico
+
+          <input
+            #registroEmailOrganizacion
+            type="email"
+            placeholder="correo@organizacion.cl"
+            autocomplete="email"
+          />
+        </label>
+
+
+        <div class="form-row">
+
+          <label>
+            Contraseña
+
+            <input
+              #registroPasswordOrganizacion
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password"
+            />
+          </label>
+
+
+          <label>
+            Confirmar contraseña
+
+            <input
+              #registroPassword2Organizacion
+              type="password"
+              placeholder="Repite tu contraseña"
+              autocomplete="new-password"
+            />
+          </label>
+
+        </div>
+
+
+        <label>
+          Nombre de la organización
+
+          <input
+            #registroNegocio
+            type="text"
+            placeholder="Ej: Café Planify"
+          />
+        </label>
+
+
+        <label>
+          RUT de la organización
+
+          <input
+            #registroRut
+            type="text"
+            maxlength="12"
+            placeholder="Ej: 76.123.456-7"
+          />
+
+          <small class="field-help">
+            El RUT será validado antes de crear la cuenta.
+          </small>
+        </label>
+
 
         <label>
           Comuna
 
           <input
-            #registroComuna
+            #registroComunaOrganizacion
             type="text"
-            placeholder="Ej: Maipú"
+            placeholder="Ej: Santiago"
           />
         </label>
 
-      </div>
 
-      <label>
-        Intereses
+        <div class="organization-verification-info">
 
-        <input
-          #registroIntereses
-          type="text"
-          placeholder="Ej: parques, gastronomía, cultura"
-        />
-      </label>
+          <span>
+            🛡️
+          </span>
 
-      <button
-        class="auth-main-button"
-        [disabled]="cargandoAuth()"
-        (click)="registrarUsuario(
-          registroNombre.value,
-          registroEmail.value,
-          registroPassword.value,
-          registroPassword2.value,
-          registroTipo.value,
-          registroEdad.value,
-          registroComuna.value,
-          registroIntereses.value,
-          registroNegocio.value
-        )"
-      >
-        @if (cargandoAuth()) {
-          Creando cuenta...
-        } @else {
-          Crear cuenta
-        }
-      </button>
+          <div>
+
+            <strong>
+              Verificación de organización
+            </strong>
+
+            <p>
+              Una cuenta nueva se crea con estado
+              <b>PENDIENTE</b>. Un administrador debe verificarla
+              antes de habilitar la publicación de eventos.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <button
+          class="auth-main-button"
+          [disabled]="cargandoAuth()"
+          (click)="registrarUsuario(
+            registroNombreOrganizacion.value,
+            registroEmailOrganizacion.value,
+            registroPasswordOrganizacion.value,
+            registroPassword2Organizacion.value,
+            'NEGOCIO',
+            '',
+            registroComunaOrganizacion.value,
+            '',
+            registroNegocio.value,
+            registroRut.value
+          )"
+        >
+          @if (cargandoAuth()) {
+            Registrando organización...
+          } @else {
+            Registrar organización
+          }
+        </button>
+
+      }
+
 
       @if (mensajeAuth()) {
+
         <div class="auth-message">
           {{ mensajeAuth() }}
         </div>
+
       }
+
 
       <p class="auth-secondary">
         ¿Ya tienes cuenta?
@@ -957,7 +1303,7 @@
               @if (usuario.tipo_usuario === 'NEGOCIO') {
                 Organización
               } @else if (usuario.tipo_usuario === 'ADMIN') {
-                Administrador
+                Fundador
               } @else {
                 Usuario
               }
@@ -973,6 +1319,16 @@
 
               <strong>
                 {{ usuario.nombre_negocio }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                RUT
+              </span>
+
+              <strong>
+                {{ usuario.rut_negocio || 'No informado' }}
               </strong>
             </div>
 
@@ -1015,15 +1371,16 @@
     <section class="admin-hero">
 
       <span class="tag">
-        Administración
+        Fundador
       </span>
 
       <h1>
-        Panel de Planify
+        Panel general de Planify
       </h1>
 
       <p>
-        Resumen general de la plataforma y sus contenidos registrados.
+        Control general de la plataforma, organizaciones,
+        lugares y eventos registrados.
       </p>
 
     </section>
@@ -1097,7 +1454,7 @@
 
           <a
             class="admin-django"
-            href="http://127.0.0.1:8000/admin/"
+            [href]="urlDjangoAdmin()"
             target="_blank"
           >
             ⚙️ Abrir Django Admin
@@ -1167,8 +1524,7 @@
       </h1>
 
       <p>
-        Publica actividades y eventos para que los usuarios
-        puedan descubrir nuevas experiencias en Planify.
+        Administra tu perfil y publica actividades para los usuarios de Planify.
       </p>
 
     </section>
@@ -1176,7 +1532,52 @@
 
     <section class="business-content">
 
-      <!-- FORMULARIO -->
+      @if (usuarioActual(); as organizacion) {
+
+        <div class="business-card">
+
+          <div class="business-header">
+
+            <div>
+              <h2>
+                {{ organizacion.nombre_negocio || 'Mi organización' }}
+              </h2>
+
+              <p>
+                Responsable: {{ organizacion.nombre }}
+              </p>
+            </div>
+
+            <span class="business-status">
+              ● {{ estadoNegocioTexto() }}
+            </span>
+
+          </div>
+
+          <p>
+            <strong>RUT:</strong>
+            {{ organizacion.rut_negocio || 'No informado' }}
+          </p>
+
+          <p>
+            <strong>Correo:</strong>
+            {{ organizacion.email }}
+          </p>
+
+          @if (!negocioPuedePublicar()) {
+
+            <div class="business-message">
+              🛡️ Esta organización todavía no está verificada.
+              Un administrador debe cambiar su estado a VERIFICADO
+              antes de poder publicar eventos.
+            </div>
+
+          }
+
+        </div>
+
+      }
+
 
       <div class="business-card">
 
@@ -1299,17 +1700,149 @@
       </div>
 
 
-      <!-- EVENTOS PUBLICADOS -->
+      @if (eventoEditando(); as editando) {
+
+        <div
+          id="editar-evento"
+          class="business-card"
+        >
+
+          <div class="business-header">
+
+            <div>
+
+              <h2>
+                Editar evento
+              </h2>
+
+              <p>
+                Modifica únicamente los datos de tu propia actividad.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div class="business-form">
+
+            <label>
+              Título
+
+              <input
+                #editTitulo
+                type="text"
+                [value]="editando.titulo"
+              />
+            </label>
+
+
+            <label>
+              Descripción
+
+              <textarea
+                #editDescripcion
+                rows="4"
+              >{{ editando.descripcion }}</textarea>
+            </label>
+
+
+            <div class="form-row">
+
+              <label>
+                Fecha
+
+                <input
+                  #editFecha
+                  type="date"
+                  [value]="editando.fecha"
+                />
+              </label>
+
+
+              <label>
+                Hora
+
+                <input
+                  #editHora
+                  type="time"
+                  [value]="editando.hora.slice(0, 5)"
+                />
+              </label>
+
+            </div>
+
+
+            <label>
+              Lugar
+
+              <select
+                #editLugar
+                [value]="editando.lugar"
+              >
+
+                @for (
+                  item of lugares();
+                  track item.id
+                ) {
+
+                  <option
+                    [value]="item.id"
+                    [selected]="
+                      item.id
+                      === editando.lugar
+                    "
+                  >
+                    {{ item.nombre }}
+                  </option>
+
+                }
+
+              </select>
+            </label>
+
+
+            <div class="admin-actions">
+
+              <button
+                class="publish-button"
+                (click)="guardarEdicionEvento(
+                  editTitulo.value,
+                  editDescripcion.value,
+                  editFecha.value,
+                  editHora.value,
+                  editLugar.value
+                )"
+              >
+                Guardar cambios
+              </button>
+
+
+              <button
+                type="button"
+                (click)="cancelarEdicionEvento()"
+              >
+                Cancelar
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      }
+
 
       <div class="business-card">
 
         <div class="business-header">
 
           <div>
-            <h2>Eventos publicados</h2>
+            <h2>Mis eventos</h2>
 
             <p>
-              Actividades disponibles actualmente en Planify.
+              Eventos publicados por esta organización.
             </p>
           </div>
 
@@ -1318,7 +1851,10 @@
 
         <div class="business-events">
 
-          @for (evento of eventos(); track evento.id) {
+          @for (
+            evento of eventosDeMiOrganizacion();
+            track evento.id
+          ) {
 
             <div class="business-event">
 
@@ -1342,8 +1878,44 @@
                 </span>
 
                 <span>
-                  {{ evento.hora }}
+                  🕐 {{ evento.hora }}
                 </span>
+
+                <button
+                  type="button"
+                  (click)="iniciarEdicionEvento(evento)"
+                >
+                  ✏️ Editar
+                </button>
+
+                <button
+                  type="button"
+                  (click)="eliminarEvento(evento)"
+                >
+                  🗑️ Eliminar
+                </button>
+
+              </div>
+
+            </div>
+
+          } @empty {
+
+            <div class="empty-message">
+
+              <span>
+                🎉
+              </span>
+
+              <div>
+
+                <strong>
+                  Aún no hay eventos propios
+                </strong>
+
+                <p>
+                  Los eventos que publique esta organización aparecerán aquí.
+                </p>
 
               </div>
 
